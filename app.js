@@ -18,8 +18,10 @@ httpProxy.createServer(9000, 'localhost', {
 // Target Http Server
 //
 http.createServer(function (req, res) {  
-  console.log(url.parse(req.url, true)); 
-  console.log('\n');
+  var parse_url = url.parse(req.url,true);
+  var query = parse_url.query || {};
+  console.log(query.dt);
+  //console.log(url.parse(req.url, true)); 
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.write('request successfully proxied to: ' + req.url + '\n' + JSON.stringify(req.headers, true, 2));
   res.end();
