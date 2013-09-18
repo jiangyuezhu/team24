@@ -2,7 +2,23 @@ var util = require('util'),
     colors = require('colors'),
     http = require('http'),
     httpProxy = require('http-proxy'),
-    url = require('url');
+    url = require('url'),
+    response = {};
+
+
+var expectedResult = { 
+  'abc': [
+    'Impression',
+    'Component List',
+    'Button'
+  ],
+  'def': [
+    'Impression',
+    'Component List',
+    'Button'
+  ]
+};
+
 
 //
 // Setup proxy server with forwarding
@@ -14,20 +30,40 @@ httpProxy.createServer(9000, 'localhost', {
   }
 }).listen(8082);
 
-//
-// Target Http Server
-//
 http.createServer(function (req, res) {  
-  var parse_url = url.parse(req.url,true);
+  var parse_url = url.parse(req.url, true);
   var query = parse_url.query || {};
-  console.log(query.dt);
-  //console.log(url.parse(req.url, true)); 
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.write('request successfully proxied to: ' + req.url + '\n' + JSON.stringify(req.headers, true, 2));
+
+  if (req.url === '/validate') {
+    compareResult(response[query.id], expectedResult[query.id]);
+  } else {
+    response[query.i] = response[query.i] || [];
+    response[query.i].push(query.dt);    
+    console.log(response[query.sid]);
+  }
+  
+  res.writeHead(200, { 'Content-Type': 'text/plain' });  
   res.end();
 }).listen(9000);
 
 
-/*util.puts('http proxy server '.blue + 'started '.green.bold + 'on port '.blue + '8003 '.yellow + 'with forward proxy'.magenta.underline);
-util.puts('http server '.blue + 'started '.green.bold + 'on port '.blue + '9000 '.yellow);
-util.puts('http forward server '.blue + 'started '.green.bold + 'on port '.blue + '9001 '.yellow);*/
+function compareResult(actual, expected) {
+  if (actual.length === 0 &&  expected.length === 0) {
+    util.puts('Failed:'.red + 'No expected result and actual result');
+    return false;
+  }
+  for (var i = 0; i < expected.length; i++)  {
+    var expMetric = expected[i];
+    for (var j = 0; j < actual.length; j++) {
+      var actMetric = actual[j];
+      if (actMetric === expMetric) {
+        actual = actual.slice(i+1, actual.length);
+        util.puts('expected '+expMetric + ' and received '+actMetric +''.green);
+        break;
+      }      
+    }
+    if (j > expected.length) {
+      util.puts('expected '+expMetric + ' and but didn\'t receive a metric'.red);
+    }
+  }   
+}
